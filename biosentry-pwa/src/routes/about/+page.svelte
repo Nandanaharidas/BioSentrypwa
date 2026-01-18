@@ -1,5 +1,5 @@
 <script>
-    import { Info, Shield, Heart, Zap } from "lucide-svelte";
+    import { Info, Shield, Heart, Zap, ArrowRight } from "lucide-svelte";
     import { fade } from "svelte/transition";
 </script>
 
@@ -84,6 +84,16 @@
                 </p>
             </div>
         </div>
+    </div>
+
+    <div class="flex justify-center pb-12">
+        <a
+            href="/onboarding"
+            class="btn btn-primary flex items-center gap-2 px-8 py-3"
+        >
+            Proceed to Medical Questionnaire
+            <ArrowRight size={20} />
+        </a>
     </div>
 
     <footer class="text-center text-xs text-text-muted pb-8">
