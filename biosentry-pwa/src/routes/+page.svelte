@@ -4,6 +4,7 @@
     signInWithPopup,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
+    getAdditionalUserInfo,
   } from "firebase/auth";
   import { userStore } from "$lib/authStore";
   import { goto } from "$app/navigation";
@@ -13,28 +14,41 @@
   let password = "";
   let isLogin = true;
   let error = "";
+  let manualRedirect = false;
 
-  $: if ($userStore) {
-    goto("/about");
+  $: if ($userStore && !manualRedirect) {
+    goto("/dashboard");
   }
 
   async function handleGoogleLogin() {
     try {
-      await signInWithPopup(auth, googleProvider);
+      manualRedirect = true;
+      const result = await signInWithPopup(auth, googleProvider);
+      const details = getAdditionalUserInfo(result);
+      if (details?.isNewUser) {
+        goto("/about");
+      } else {
+        goto("/dashboard");
+      }
     } catch (e) {
       error = e.message;
+      manualRedirect = false;
     }
   }
 
   async function handleSubmit() {
     try {
+      manualRedirect = true;
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
+        goto("/dashboard");
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
+        goto("/about");
       }
     } catch (e) {
       error = e.message;
+      manualRedirect = false;
     }
   }
 </script>
