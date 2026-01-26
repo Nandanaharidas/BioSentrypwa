@@ -1,0 +1,63 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Medicine Vision API Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    button {
+      padding: 8px 14px;
+      margin-top: 10px;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>💊 Medicine Image Extractor</h2>
+
+<input type="file" id="imageInput" accept="image/*">
+<br>
+<button onclick="uploadImage()">Upload & Extract</button>
+
+<h3>Result</h3>
+<pre id="result">Waiting...</pre>
+
+<script>
+async function uploadImage() {
+  const fileInput = document.getElementById("imageInput");
+  const resultEl = document.getElementById("result");
+
+  if (!fileInput.files.length) {
+    alert("Please select an image");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("image", fileInput.files[0]);
+
+  resultEl.textContent = "Processing...";
+
+  try {
+    const response = await fetch("/api/extract", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await response.json();
+    resultEl.textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    resultEl.textContent = "Error: " + err;
+  }
+}
+</script>
+
+</body>
+</html>
