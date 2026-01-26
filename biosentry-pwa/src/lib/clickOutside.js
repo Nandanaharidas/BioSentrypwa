@@ -1,0 +1,20 @@
+/**
+ * Svelte action to detect clicks outside of an element
+ */
+export function clickOutside(node) {
+    const handleClick = (event) => {
+        if (node && !node.contains(event.target) && !event.defaultPrevented) {
+            node.dispatchEvent(new CustomEvent('click_outside', {
+                detail: event
+            }));
+        }
+    };
+
+    document.addEventListener('click', handleClick, true);
+
+    return {
+        destroy() {
+            document.removeEventListener('click', handleClick, true);
+        }
+    };
+}

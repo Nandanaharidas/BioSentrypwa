@@ -7,6 +7,7 @@
         PhoneCall,
         ArrowLeft,
     } from "lucide-svelte";
+    import { selectedMedicationStore } from "$lib/medicationStore";
     import RealTimeChart from "$lib/components/RealTimeChart.svelte";
     import { fade, slide } from "svelte/transition";
 
@@ -89,10 +90,26 @@
         >
             <ArrowLeft size={20} />
         </a>
-        <h1 class="text-2xl font-bold">Measure Drug Metrics</h1>
+        <h1 class="text-2xl font-bold">
+            Monitoring: {$selectedMedicationStore?.name || "No Drug Selected"}
+        </h1>
     </div>
 
     <div class="glass p-6 flex flex-col items-center">
+        {#if $selectedMedicationStore}
+            <div class="mb-4 text-center">
+                <span
+                    class="text-xs font-bold text-primary uppercase tracking-widest"
+                    >Active Medication</span
+                >
+                <h2 class="text-xl font-bold">
+                    {$selectedMedicationStore.name}
+                </h2>
+                <p class="text-xs text-text-muted font-mono">
+                    Batch: {$selectedMedicationStore.batch}
+                </p>
+            </div>
+        {/if}
         <div
             class="w-20 h-20 rounded-full flex items-center justify-center mb-4 {isMeasuring
                 ? 'bg-red-500/20 animate-pulse'
