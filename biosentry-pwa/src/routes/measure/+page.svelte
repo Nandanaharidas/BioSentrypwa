@@ -17,6 +17,8 @@
     import RealTimeChart from "$lib/components/RealTimeChart.svelte";
     import { fade, slide, scale } from "svelte/transition";
     import { goto } from "$app/navigation";
+    import { deviceStore } from "$lib/deviceStore";
+    import { Html5Qrcode } from "html5-qrcode";
 
     // Stage management: 'pairing' | 'data' | 'camera' | 'confirmation' | 'thankyou' | 'risk'
     let currentStage = "pairing";
@@ -49,13 +51,74 @@
     let recordingTime = 6;
     let recordingInterval;
 
+    // QR Scanner
+    let html5QrCode;
+    let isScanning = false;
+    let qrError = "";
+
     async function startPairing() {
+        if ($deviceStore.isConnected) {
+            isPaired = true;
+            return;
+        }
         isPairing = true;
         // Simulate pairing process
         setTimeout(() => {
             isPairing = false;
-            isPaired = true;
+            // No longer automatically pair, wait for QR or manual
+            // isPaired = true;
         }, 2500);
+    }
+
+    async function startScanning() {
+        isScanning = true;
+        qrError = "";
+        setTimeout(() => {
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            html5QrCode
+                .start(
+                    { facingMode: "environment" },
+                    config,
+                    (decodedText) => {
+                        handleQrSuccess(decodedText);
+                    },
+                    (errorMessage) => {
+                        // console.log(errorMessage);
+                    },
+                )
+                .catch((err) => {
+                    qrError = "Camera access failed: " + err;
+                });
+        }, 100);
+    }
+
+    async function stopScanning() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            await html5QrCode.stop();
+            await html5QrCode.clear();
+        }
+        isScanning = false;
+    }
+
+    function handleQrSuccess(decodedText) {
+        try {
+            const data = JSON.parse(decodedText);
+            if (data.url && data.username && data.password) {
+                deviceStore.set({
+                    url: data.url,
+                    username: data.username,
+                    password: data.password,
+                    isConnected: true,
+                });
+                isPaired = true;
+                stopScanning();
+            } else {
+                qrError = "Invalid QR code format";
+            }
+        } catch (e) {
+            qrError = "Invalid QR code content";
+        }
     }
 
     async function activateMonitoring() {
@@ -118,7 +181,19 @@
 
     async function fetchMetrics() {
         try {
-            const res = await fetch("http://localhost:3001/metrics");
+            const url = $deviceStore.url || "http://localhost:3001/metrics";
+            const headers = {};
+
+            if ($deviceStore.username && $deviceStore.password) {
+                const auth = btoa(
+                    `${$deviceStore.username}:${$deviceStore.password}`,
+                );
+                headers["Authorization"] = `Basic ${auth}`;
+            }
+
+            const res = await fetch(url, { headers });
+            if (!res.ok) throw new Error("Fetch failed");
+
             const data = await res.json();
 
             currentMetrics = {
@@ -235,24 +310,71 @@
 
             <div class="space-y-2">
                 <h2 class="text-3xl font-extrabold tracking-tight">
-                    {#if isPairing}Connecting...{:else if isPaired}Pairing
-                        Successful{:else}Connection Failed{/if}
+                    {#if isScanning}Scan Device QR{:else if isPairing}Connecting...{:else if isPaired}Pairing
+                        Successful{:else}Connection Setup{/if}
                 </h2>
                 <p class="text-text-muted">
-                    {#if isPairing}Establishing secure connection to your
-                        wearable...{:else if isPaired}Device linked and
-                        calibrated. Ready to monitor.{:else}Unknown error
-                        occurred while pairing.{/if}
+                    {#if isScanning}Point your camera at the QR code on the
+                        device{:else if isPairing}Establishing secure connection
+                        to your wearable...{:else if isPaired}Device linked and
+                        calibrated. Ready to monitor.{:else}Please scan the
+                        device QR code to connect.{/if}
                 </p>
             </div>
 
-            <button
-                on:click={activateMonitoring}
-                disabled={!isPaired}
-                class="btn btn-primary w-full h-16 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 disabled:opacity-50 transition-all active:scale-95"
-            >
-                Activate monitoring
-            </button>
+            {#if isScanning}
+                <div
+                    class="w-full max-w-sm mx-auto aspect-square glass rounded-3xl overflow-hidden relative border-2 border-primary/30"
+                >
+                    <div id="reader" class="w-full h-full"></div>
+                    {#if qrError}
+                        <div
+                            class="absolute inset-0 bg-red-500/20 flex items-center justify-center p-4 text-center"
+                        >
+                            <p class="text-red-500 font-bold">{qrError}</p>
+                        </div>
+                    {/if}
+                    <button
+                        on:click={stopScanning}
+                        class="absolute bottom-4 left-1/2 -translate-x-1/2 glass px-4 py-2 rounded-full text-xs font-bold"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            {:else}
+                <div class="w-full space-y-4">
+                    <button
+                        on:click={startScanning}
+                        class="w-full h-20 glass border-dashed border-2 border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-between px-6 group"
+                    >
+                        <div class="flex items-center gap-4">
+                            <div
+                                class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform"
+                            >
+                                <Camera size={20} />
+                            </div>
+                            <div class="text-left">
+                                <div class="font-bold text-lg">
+                                    Scan QR Code
+                                </div>
+                                <div class="text-xs text-text-muted">
+                                    Use camera to pair instantly
+                                </div>
+                            </div>
+                        </div>
+                        <ChevronRight class="text-primary" />
+                    </button>
+
+                    <button
+                        on:click={activateMonitoring}
+                        disabled={!isPaired}
+                        class="btn btn-primary w-full h-16 rounded-2xl text-lg font-bold shadow-lg shadow-primary/20 disabled:opacity-50 transition-all active:scale-95"
+                    >
+                        {#if isPaired}Activate monitoring{:else}Waiting for
+                            pairing...{/if}
+                    </button>
+                </div>
+            {/if}
         </div>
     {/if}
 
