@@ -6,6 +6,29 @@ const port = 3001;
 app.use(cors());
 app.use(express.json());
 
+const AUTH_USERNAME = 'admin';
+const AUTH_PASSWORD = 'biosentry123';
+
+// Basic Auth middleware
+const authenticate = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        res.setHeader('WWW-Authenticate', 'Basic realm="BioSentry IoT"');
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    const user = auth[0];
+    const pass = auth[1];
+
+    if (user === AUTH_USERNAME && pass === AUTH_PASSWORD) {
+        next();
+    } else {
+        res.setHeader('WWW-Authenticate', 'Basic realm="BioSentry IoT"');
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+};
+
 // Simulated state
 let metrics = {
     temp: 36.5,
@@ -25,8 +48,8 @@ const jitter = () => {
 // Update metrics every second
 setInterval(jitter, 1000);
 
-app.get('/metrics', (req, res) => {
-    console.log(`[IoT-Simulator] Serving metrics:`, metrics);
+app.get('/metrics', authenticate, (req, res) => {
+    console.log(`[IoT-Simulator] Serving metrics to authenticated user:`, metrics);
     res.json({
         ...metrics,
         timestamp: Date.now()
@@ -36,3 +59,4 @@ app.get('/metrics', (req, res) => {
 app.listen(port, () => {
     console.log(`BioSentry IoT Simulator listening at http://localhost:${port}`);
 });
+
