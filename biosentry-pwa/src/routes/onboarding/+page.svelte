@@ -11,7 +11,9 @@
         Search,
         X,
         Plus,
+        AlertCircle,
     } from "lucide-svelte";
+    import { isValidContact } from "$lib/validation";
 
     let step = 1;
     const totalSteps = 4;
@@ -114,11 +116,82 @@
         }
     }
 
+    let errors = {
+        gender: "",
+        dob: "",
+        contactInfo: "",
+        location: "",
+        weight: "",
+        height: "",
+        bloodGroup: "",
+    };
+
+    function validateStep() {
+        errors = {
+            gender: "",
+            dob: "",
+            contactInfo: "",
+            location: "",
+            weight: "",
+            height: "",
+            bloodGroup: "",
+        };
+        let isValid = true;
+
+        if (step === 1) {
+            if (!profile.gender) {
+                errors.gender = "Gender is required";
+                isValid = false;
+            }
+            if (!profile.dob) {
+                errors.dob = "Date of birth is required";
+                isValid = false;
+            }
+            if (!profile.contactInfo) {
+                errors.contactInfo = "Contact information is required";
+                isValid = false;
+            } else if (!isValidContact(profile.contactInfo)) {
+                errors.contactInfo =
+                    "Please enter a valid phone number or email address";
+                isValid = false;
+            }
+            if (!profile.location) {
+                errors.location = "Location is required";
+                isValid = false;
+            }
+        } else if (step === 2) {
+            if (!profile.weight) {
+                errors.weight = "Weight is required";
+                isValid = false;
+            } else if (profile.weight <= 0) {
+                errors.weight = "Please enter a valid weight";
+                isValid = false;
+            }
+            if (!profile.height) {
+                errors.height = "Height is required";
+                isValid = false;
+            } else if (profile.height <= 0) {
+                errors.height = "Please enter a valid height";
+                isValid = false;
+            }
+            if (!profile.bloodGroup) {
+                errors.bloodGroup = "Blood group is required";
+                isValid = false;
+            }
+        }
+        return isValid;
+    }
+
     function next() {
-        if (step < totalSteps) step++;
+        if (validateStep()) {
+            if (step < totalSteps) step++;
+        }
     }
     function prev() {
-        if (step > 1) step--;
+        if (step > 1) {
+            errors = { contactInfo: "" };
+            step--;
+        }
     }
 </script>
 
@@ -158,7 +231,10 @@
                         <select
                             id="gender"
                             bind:value={profile.gender}
-                            class="input"
+                            class="input {errors.gender
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:change={() => (errors.gender = "")}
                         >
                             <option value="">Select Gender</option>
                             <option value="male">Male</option>
@@ -168,6 +244,15 @@
                                 >Prefer not to say</option
                             >
                         </select>
+                        {#if errors.gender}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.gender}
+                            </div>
+                        {/if}
                     </div>
                     <div>
                         <label for="dob" class="block text-sm font-medium mb-1"
@@ -177,8 +262,20 @@
                             id="dob"
                             type="date"
                             bind:value={profile.dob}
-                            class="input"
+                            class="input {errors.dob
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:input={() => (errors.dob = "")}
                         />
+                        {#if errors.dob}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.dob}
+                            </div>
+                        {/if}
                     </div>
                     <div class="md:col-span-2">
                         <label
@@ -190,9 +287,21 @@
                             id="contactInfo"
                             type="text"
                             bind:value={profile.contactInfo}
-                            placeholder="e.g. +1 234 567 890"
-                            class="input"
+                            placeholder="e.g. +1 234 567 890 or user@example.com"
+                            class="input {errors.contactInfo
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:input={() => (errors.contactInfo = "")}
                         />
+                        {#if errors.contactInfo}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.contactInfo}
+                            </div>
+                        {/if}
                     </div>
                     <div class="md:col-span-2">
                         <label
@@ -205,8 +314,20 @@
                             type="text"
                             bind:value={profile.location}
                             placeholder="City, Country"
-                            class="input"
+                            class="input {errors.location
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:input={() => (errors.location = "")}
                         />
+                        {#if errors.location}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.location}
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </div>
@@ -232,8 +353,20 @@
                             type="number"
                             bind:value={profile.weight}
                             placeholder="70"
-                            class="input"
+                            class="input {errors.weight
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:input={() => (errors.weight = "")}
                         />
+                        {#if errors.weight}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.weight}
+                            </div>
+                        {/if}
                     </div>
                     <div>
                         <label
@@ -246,8 +379,20 @@
                             type="number"
                             bind:value={profile.height}
                             placeholder="175"
-                            class="input"
+                            class="input {errors.height
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:input={() => (errors.height = "")}
                         />
+                        {#if errors.height}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.height}
+                            </div>
+                        {/if}
                     </div>
                     <div class="md:col-span-2">
                         <label
@@ -258,7 +403,10 @@
                         <select
                             id="bloodGroup"
                             bind:value={profile.bloodGroup}
-                            class="input"
+                            class="input {errors.bloodGroup
+                                ? 'border-red-500 ring-1 ring-red-500/50'
+                                : ''}"
+                            on:change={() => (errors.bloodGroup = "")}
                         >
                             <option value="">Select Blood Group</option>
                             <option value="A+">A+</option>
@@ -270,6 +418,15 @@
                             <option value="AB+">AB+</option>
                             <option value="AB-">AB-</option>
                         </select>
+                        {#if errors.bloodGroup}
+                            <div
+                                transition:slide
+                                class="flex items-center gap-2 mt-2 text-red-400 text-xs font-medium"
+                            >
+                                <AlertCircle size={14} />
+                                {errors.bloodGroup}
+                            </div>
+                        {/if}
                     </div>
                 </div>
             </div>

@@ -15,15 +15,14 @@ import { getStorage } from "firebase/storage";
 
 
 const firebaseConfig = {
-
     apiKey: "AIzaSyBsMDCr4gGNmdtaKQDFcYa4kQcs5VfRKJ4",
     authDomain: "biosentry-3dabf.firebaseapp.com",
+    databaseURL: "https://biosentry-3dabf-default-rtdb.firebaseio.com",
     projectId: "biosentry-3dabf",
     storageBucket: "biosentry-3dabf.firebasestorage.app",
     messagingSenderId: "1087161359925",
     appId: "1:1087161359925:web:99fe49e626c02c868a5b7c",
     measurementId: "G-2X75T0HJD0"
-
 };
 
 
