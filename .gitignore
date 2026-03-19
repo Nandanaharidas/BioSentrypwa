@@ -2,3 +2,5 @@ prompt1.md
 .direnv
 node_modules/*
 .env
+**/node_modules/
+iot-simulator/.env_1
