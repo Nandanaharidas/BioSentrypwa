@@ -63,8 +63,10 @@ def extract_medicine_details(image_base64: str) -> dict:
         ],
         temperature=0
     )
+    result = response.choices[0].message.content
+    print(result)
 
-    return json.loads(response.choices[0].message.content)
+    return json.loads(result)
 
 
 # 🌐 Frontend page

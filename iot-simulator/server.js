@@ -18,7 +18,7 @@ const {
 } = require('firebase/database');
 
 // ─── Config ────────────────────────────────────────────────────────────────
-const DEVICE_ID    = process.env.DEVICE_ID        || 'biosentry-device-001';
+const DEVICE_ID    = process.env.DEVICE_ID        || 'biosentry-device-002';
 const PWA_URL      = process.env.PWA_URL           || 'http://localhost:5173';
 const PORT         = 3001;
 const PUSH_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
@@ -129,6 +129,7 @@ const authenticate = (req, res, next) => {
 app.get('/', async (req, res) => {
     const pairingUrl = `${PWA_URL}/pair-device?deviceId=${DEVICE_ID}`;
     let qrDataUrl;
+    console.log(pairingUrl)
     try {
         qrDataUrl = await QRCode.toDataURL(pairingUrl, { width: 260, margin: 2 });
     } catch (err) {
