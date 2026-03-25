@@ -2,18 +2,14 @@
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { userStore, authLoading } from "$lib/authStore";
-  import { getDatabase, ref, set } from "firebase/database";
-  import { initializeApp, getApps } from "firebase/app";
+  import { rtdb } from "$lib/firebase";
+  import { ref, set } from "firebase/database";
+  import { deviceStore } from "$lib/deviceStore";
   import CheckCircle from "lucide-svelte/icons/check-circle";
   import Cpu from "lucide-svelte/icons/cpu";
   import AlertTriangle from "lucide-svelte/icons/alert-triangle";
   import Loader from "lucide-svelte/icons/loader";
   import QrCode from "lucide-svelte/icons/qr-code";
-
-  // ── Firebase RTDB (uses same project as the existing firestore app) ───────
-  // We grab the already-initialized app so we don't double-init
-  import { getApp } from "firebase/app";
-  const rtdb = getDatabase(getApp());
 
   // ── Extract deviceId from URL ─────────────────────────────────────────────
   $: deviceId = $page.url.searchParams.get("deviceId") || "";
@@ -37,21 +33,20 @@
     try {
       const user = $userStore;
 
-      // Write to Firebase RTDB — pairedDevices/{deviceId}
-      // The IoT simulator listens here to detect pairing
-      await set(ref(rtdb, `pairedDevices/${deviceId}`), {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email,
-        pairedAt: Date.now(),
-      });
-
-      // Also write to RTDB so the dashboard can list devices
+      // Write device under user's account so dashboard can list it
       await set(ref(rtdb, `users/${user.uid}/devices/${deviceId}`), {
         deviceId,
         name: "BioSentry IoT Device",
         pairedAt: Date.now(),
-        readings: {}, // Initialize an empty object for readings
+      });
+
+      // Update the local deviceStore so measure page picks it up
+      deviceStore.set({
+        deviceId,
+        isConnected: true,
+        url: null,
+        username: null,
+        password: null,
       });
 
       state = "success";
@@ -71,7 +66,7 @@
     <h1 class="text-3xl font-bold mb-2">Register IoT Device</h1>
     <p class="text-text-muted text-sm mb-8">
       Link this BioSentry IoT device to your account. After registration, the
-      device will push sensor data to Firebase every 2 minutes.
+      device will push sensor data to Firebase every 5 seconds.
     </p>
 
     <!-- Device ID pill -->
@@ -132,7 +127,7 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="text-text-muted w-24 shrink-0">Push interval</span>
-          <span>Every 2 minutes</span>
+          <span>Every 5 seconds</span>
         </div>
       </div>
 

@@ -43,9 +43,10 @@
 
     function handleQrSuccess(decodedText) {
         try {
-            console.log("Scanned QR:", decodedText);
+            const deviceId = decodedText.trim();
+            console.log("Scanned QR — Device ID:", deviceId);
             stopScanning();
-            window.location.href = decodedText;
+            goto(`/pair-device?deviceId=${encodeURIComponent(deviceId)}`);
         } catch (e) {
             qrError = "Invalid QR code content";
         }

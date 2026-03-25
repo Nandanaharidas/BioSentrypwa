@@ -1,21 +1,25 @@
 import { writable, get } from 'svelte/store';
 import { deviceStore } from './deviceStore';
 import { rtdb } from './firebase';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, push, set } from 'firebase/database';
 import { userStore } from './authStore';
+import { selectedMedicationStore } from './medicationStore';
 
 export const metricsData = writable({
+    bpm: [],
+    spo2: [],
     temp: [],
-    pressure: [],
-    o2: [],
-    skin_conductance: [],
+    emg: [],
+    gsr: [],
 });
 
 export const currentMetrics = writable({
+    bpm: 0,
+    spo2: 0,
     temp: 0,
-    pressure: 0,
-    o2: 0,
-    skin_conductance: 0,
+    emg: 0,
+    gsr: 0,
+    finger_detected: false,
 });
 
 export const severity = writable("Low");
@@ -30,26 +34,47 @@ export function handleNewMetrics(data) {
     if (!data) return;
 
     currentMetrics.set({
+        bpm: data.bpm || 0,
+        spo2: data.spo2 || 0,
         temp: data.temp || 0,
-        pressure: data.pressure || 0,
-        o2: data.o2 || 0,
-        skin_conductance: data.skin_conductance || 0,
+        emg: data.emg || 0,
+        gsr: data.gsr || 0,
+        finger_detected: data.finger_detected || false,
     });
 
     metricsData.update(md => ({
+        bpm: [...md.bpm.slice(-19), data.bpm || 0],
+        spo2: [...md.spo2.slice(-19), data.spo2 || 0],
         temp: [...md.temp.slice(-19), data.temp || 0],
-        pressure: [...md.pressure.slice(-19), data.pressure || 0],
-        o2: [...md.o2.slice(-19), data.o2 || 0],
-        skin_conductance: [...md.skin_conductance.slice(-19), data.skin_conductance || 0],
+        emg: [...md.emg.slice(-19), data.emg || 0],
+        gsr: [...md.gsr.slice(-19), data.gsr || 0],
     }));
 
-    if (data.temp > 38 || (data.o2 > 0 && data.o2 < 92)) {
+    // Severity check based on temp and spo2
+    if (data.temp > 38 || (data.spo2 > 0 && data.spo2 < 92)) {
         severity.set("High");
         showEmergencyPopup.set(true);
-    } else if (data.temp > 37.5 || (data.o2 > 0 && data.o2 < 95)) {
+    } else if (data.temp > 37.5 || (data.spo2 > 0 && data.spo2 < 95)) {
         severity.set("Medium");
     } else {
         severity.set("Low");
+    }
+
+    // Push to user's medication history (if a medication is selected)
+    const user = /** @type {any} */ (get(userStore));
+    const med = /** @type {any} */ (get(selectedMedicationStore));
+    if (user && med?.id) {
+        const readingsRef = ref(rtdb, `users/${user.uid}/medications/${med.id}/readings`);
+        const newReadingRef = push(readingsRef);
+        set(newReadingRef, {
+            bpm: data.bpm || 0,
+            spo2: data.spo2 || 0,
+            temp: data.temp || 0,
+            emg: data.emg || 0,
+            gsr: data.gsr || 0,
+            finger_detected: data.finger_detected || false,
+            timestamp: Date.now(),
+        });
     }
 }
 
@@ -66,9 +91,10 @@ export function startVitalsFetch() {
 
     isMeasuring.set(true);
 
-    const metricsRef = ref(rtdb, `users/${user.uid}/devices/${device.deviceId}/latest`);
+    // Listen to the device node where ESP32 writes data directly
+    const deviceRef = ref(rtdb, `devices/${device.deviceId}`);
 
-    unsubscribeMetrics = onValue(metricsRef, (snapshot) => {
+    unsubscribeMetrics = onValue(deviceRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
             handleNewMetrics(data);

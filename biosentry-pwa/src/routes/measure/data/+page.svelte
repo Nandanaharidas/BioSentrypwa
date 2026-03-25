@@ -4,6 +4,7 @@
     import Camera from "lucide-svelte/icons/camera";
     import ChevronRight from "lucide-svelte/icons/chevron-right";
     import AlertTriangle from "lucide-svelte/icons/alert-triangle";
+    import Fingerprint from "lucide-svelte/icons/fingerprint";
     import RealTimeChart from "$lib/components/RealTimeChart.svelte";
     import { goto } from "$app/navigation";
     import {
@@ -23,59 +24,102 @@
 </script>
 
 <div in:fade class="space-y-6">
+    <!-- Finger Detection Status -->
+    <div
+        class="glass p-3 flex items-center gap-3 {$currentMetrics.finger_detected
+            ? 'border-green-500/30 bg-green-500/5'
+            : 'border-yellow-500/30 bg-yellow-500/5'}"
+    >
+        <Fingerprint
+            size={20}
+            class={$currentMetrics.finger_detected
+                ? "text-green-400"
+                : "text-yellow-400"}
+        />
+        <span class="text-sm font-medium">
+            {$currentMetrics.finger_detected
+                ? "Finger detected — reading vitals"
+                : "Place finger on sensor to begin"}
+        </span>
+    </div>
+
     <!-- Vitals Grid -->
     <div class="grid grid-cols-2 gap-4">
         <div class="glass p-4 space-y-2">
             <span class="text-[10px] font-bold text-text-muted uppercase"
-                >Temperature</span
+                >Heart Rate</span
             >
-            <div class="text-2xl font-bold">{$currentMetrics.temp}°C</div>
+            <div class="text-2xl font-bold">
+                {$currentMetrics.bpm.toFixed(0)}
+                <span class="text-sm text-text-muted">bpm</span>
+            </div>
             <div class="h-16">
                 <RealTimeChart
-                    data={$metricsData.temp}
-                    label="Temp"
+                    data={$metricsData.bpm}
+                    label="BPM"
                     color="#f87171"
                 />
             </div>
         </div>
         <div class="glass p-4 space-y-2">
             <span class="text-[10px] font-bold text-text-muted uppercase"
-                >Blood Pressure</span
+                >SpO2</span
             >
-            <div class="text-2xl font-bold">{$currentMetrics.pressure}</div>
+            <div class="text-2xl font-bold">
+                {$currentMetrics.spo2.toFixed(1)}%
+            </div>
             <div class="h-16">
                 <RealTimeChart
-                    data={$metricsData.pressure}
-                    label="BP"
+                    data={$metricsData.spo2}
+                    label="SpO2"
                     color="#60a5fa"
                 />
             </div>
         </div>
         <div class="glass p-4 space-y-2">
             <span class="text-[10px] font-bold text-text-muted uppercase"
-                >O2 Level</span
+                >Temperature</span
             >
-            <div class="text-2xl font-bold">{$currentMetrics.o2}%</div>
+            <div class="text-2xl font-bold">
+                {$currentMetrics.temp.toFixed(1)}°C
+            </div>
             <div class="h-16">
                 <RealTimeChart
-                    data={$metricsData.o2}
-                    label="O2"
+                    data={$metricsData.temp}
+                    label="Temp"
                     color="#34d399"
                 />
             </div>
         </div>
         <div class="glass p-4 space-y-2">
             <span class="text-[10px] font-bold text-text-muted uppercase"
-                >Skin Conductance</span
+                >EMG</span
             >
             <div class="text-2xl font-bold">
-                {$currentMetrics.skin_conductance}μS
+                {$currentMetrics.emg.toFixed(0)}
+                <span class="text-sm text-text-muted">mV</span>
             </div>
             <div class="h-16">
                 <RealTimeChart
-                    data={$metricsData.skin_conductance}
-                    label="GSR"
+                    data={$metricsData.emg}
+                    label="EMG"
                     color="#fbbf24"
+                />
+            </div>
+        </div>
+        <div class="glass p-4 space-y-2 col-span-2">
+            <span class="text-[10px] font-bold text-text-muted uppercase"
+                >GSR (Skin Conductance)</span
+            >
+            <div class="text-2xl font-bold">
+                {$currentMetrics.gsr.toFixed(2)}
+                <span class="text-sm text-text-muted">kΩ</span>
+            </div>
+            <div class="h-16">
+                <RealTimeChart
+                    data={$metricsData.gsr}
+                    label="GSR"
+                    color="#a78bfa"
                 />
             </div>
         </div>
